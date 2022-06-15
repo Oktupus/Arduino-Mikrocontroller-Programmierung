@@ -1,0 +1,68 @@
+/*
+This code is to control the specified motion of the stepper motor
+
+The highest, lowest position is recorded
+
+Reserved for SFM interface
+
+The method of accelerating or decelerating start
+
+Zhongyu
+02.06.2022
+ 
+*/
+#include <AccelStepper.h>
+
+//#define DEG_PER_STEP 1.8
+//#define STEP_PER_REVOLUTION (360 / DEG_PER_STEP)
+#define SFM [100]
+#define Speed1 200
+#define Acceleration1 200
+#define Hig_Pos 100
+#define Low_Pos -300
+//The highest and lowest positions are observed by the operator and are variables. Here 100, -300 is an example.
+
+
+AccelStepper stepper(AccelStepper::FULL4WIRE, 8, 9, 10, 11); 
+//FULL4WIRE = 4. Symbolic names for number of pins.
+
+
+int moveToPosition[ 100 ] ; // moveToPosition is an array of 100 integers
+#define  moveToPosition[0]= (Hig_Pos+Low_Pos)/2;
+//determine the middle position by dichotomy
+
+void setup() {
+  Serial.begin(9600);
+
+  stepper.setAcceleration(Acceleration1); // set acceleration
+  stepper.setSpeed(Speed1);          // set initial speed
+  stepper.setMaxSpeed(2000);    // set maximal speed
+  stepper.setCurrentPosition(0);  // set initial position to 0
+
+  stepper.moveTo(Hig_Pos); // move motor to the highest position, in clockwise direction
+  Serial.println("Motor moving clockwise to the highest position");
+  stepper.setCurrentPosition(Hig_Pos);  // set the highest point position
+
+  stepper.moveTo(-Hig_Pos); // move motor to initial position
+  Serial.println("Motor returns to the original point");
+
+  stepper.moveTo(Low_Pos); // move motor to the Lowest position, in counterclockwise direction
+  Serial.println("Motor moving clockwise to the highest position");
+  stepper.setCurrentPosition(Low_Pos);  // set the Lowest point position
+}
+
+void loop() {
+  if (stepper.distanceToGo() == 0) 
+    Serial.println("Motor is stopped");
+    delay(1000); // stop 1 second
+    
+    for (int i=1; i <= 100; i++){
+      moveToPosition[i]= (moveToPosition[i-1]+Low_Pos)/2;
+      stepper.moveTo(moveToPosition[i]); // move motor to middle point
+      if (SFM [i] < 0)
+      Serial.println("Continue searching for the next midpoint");
+      else if (SFM [i]> 0)
+      Serial.println("All points have been identified, stop searching");
+      break;
+      }     
+}
