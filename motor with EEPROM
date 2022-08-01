@@ -1,0 +1,110 @@
+#include <Stepper.h>
+#include <EEPROM.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27,20,4);
+int upstep = 0;                 
+int downstep = 0;               
+const int upbuttonPin = 2;      //set upbuttonPin to digital input port 2
+const int downbuttonPin = 3;    //set downbuttonPin to digital input port 3
+const int enterPin = 4;         //set enterPin to digital input port 4
+int upbuttonState = 0;          
+int downbuttonState = 0;        
+int enterbuttonState = 0;       
+int downAddr = 0;               //set the EEPROM adress
+int nSeries = 0;                
+Stepper m0(200,8,9,10,11);      //init the stepper motor
+
+void m0Stop(){                  // function motor stop status, set all pin to LOW
+    digitalWrite(8,LOW);
+    digitalWrite(9,LOW);
+    digitalWrite(10,LOW);
+    digitalWrite(11,LOW);
+}
+
+void setUpDownBound(){        // At the begining, need to set the up and down bound
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Set upbound");
+  lcd.setCursor(0,1);
+  lcd.print("Finish press Enter");
+  while (true) {                           
+    downbuttonState = digitalRead(downbuttonPin);
+    upbuttonState = digitalRead(upbuttonPin);
+    enterbuttonState = digitalRead(enterPin);
+    if (upbuttonState == HIGH) {          
+    m0.step(1);
+    upstep = upstep + 1;
+    lcd.setCursor(0,2);
+    lcd.print("Up:  ");
+    lcd.print(upstep);
+    }
+    if (enterbuttonState == HIGH) {
+      //EEPROM.write(upAddr, upstep/30);
+      Serial.println(upstep);
+      delay(1000);
+      break;
+    }
+   }
+   lcd.clear();
+   lcd.setCursor(0,0);
+   lcd.print("Set downbound");
+   lcd.setCursor(0,1);
+   lcd.print("Finish press Enter");
+   while (true) {
+    downbuttonState = digitalRead(downbuttonPin);
+    upbuttonState = digitalRead(upbuttonPin);
+    enterbuttonState = digitalRead(enterPin);
+    if (downbuttonState == HIGH) {
+    m0.step(-1);
+    downstep = downstep + 1;
+    lcd.setCursor(0,2);
+    lcd.print("Down:");
+    lcd.print(downstep);
+    }
+    if (enterbuttonState == HIGH) {
+      //TODO: save the number of many EEPROM, because the one Address can only save 4 bit/number(0-255).
+      //EEPROM.write(downAddr, downstep/30);
+      Serial.println(downstep);
+      delay(500);
+      break; 
+    }
+   }
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Stop Setting");
+  Serial.println("Stop Setting");
+}
+
+void setSeries() {                // this can also be setted by bluetooth using a smartphone and a bluetooth modul
+  String readString;
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Enter N on Monitor");
+  while(true) {
+    while (Serial.available()) {
+      char c = Serial.read(); 
+      readString += c;
+      delay(2);
+    }
+    if (readString.length() >0) {
+      Serial.println(readString);
+      nSeries = readString.toInt(); //convert String to int
+      break;
+    }
+  }
+}
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  lcd.init();                      // initialize the lcd 
+  // Print a message to the LCD.
+  lcd.backlight();
+  lcd.setCursor(0,0);
+  lcd.print("3digiart GmbH");
+  lcd.setCursor(0,1);
+  lcd.print("Starting...");
+  setUpDownBound();
+  setSeries();  
+}
